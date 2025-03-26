@@ -1,123 +1,160 @@
+
 # Nutritional Tracker
+# main.py
+# Sainey Take (B00861683) Anne Taha (B00866148)
 
-# Function to calculate Total Daily Energy Expenditure (TDEE) based on user details
-def calculate_tdee(weight, height, age, gender, activity_level):
-    """
-    Calculates the Basal Metabolic Rate (BMR) using the Harris-Benedict equation and adjusts it for activity level.
-    """
-    if gender.lower() == 'male':
-        bmr = 10 * weight + 6.25 * height - 5 * age + 5
-    else:
-        bmr = 10 * weight + 6.25 * height - 5 * age - 161
+import csv
 
-    # Activity multipliers from the lecture on Variables and Control Flow
-    activity_multipliers = {
-        "sedentary": 1.2,
-        "lightly active": 1.375,
-        "moderately active": 1.55,
-        "very active": 1.725,
-        "extra active": 1.9
-    }
-    return bmr * activity_multipliers[activity_level]
+# this class is just for storing the person's info and calculating stuff like TDEE
+class UserInfo:
+    def __init__(self, weight, height, age, gender, activity_level, goal):
+        self.weight = weight
+        self.height = height
+        self.age = age
+        self.gender = gender.lower()
+        self.activity_level = activity_level.lower()
+        self.goal = goal.lower()
 
-# Function to calculate macronutrient distribution based on TDEE and user goal
-def calculate_macros(tdee, goal):
-    """
-    Adjusts calorie intake for weight goals and calculates macronutrient targets.
-    """
-    if goal == "gain":
-        tdee += 500
-    elif goal == "lose":
-        tdee -= 500
+    # tdee = how much energy you burn in a day
+    def get_tdee(self):
+        if self.gender == 'male':
+            bmr = 10 * self.weight + 6.25 * self.height - 5 * self.age + 5
+        else:
+            bmr = 10 * self.weight + 6.25 * self.height - 5 * self.age - 161
 
-    # Macronutrient split (Carbs: 40%, Protein: 30%, Fats: 30%)
-    carbs = (tdee * 0.4) / 4  # 4 kcal per gram of carbs
-    protein = (tdee * 0.3) / 4  # 4 kcal per gram of protein
-    fats = (tdee * 0.3) / 9  # 9 kcal per gram of fats
+        # multiplier depends on how active you are
+        activity = {
+            "sedentary": 1.2,
+            "lightly active": 1.375,
+            "moderately active": 1.55,
+            "very active": 1.725,
+            "extra active": 1.9
+        }
 
-    return {
-        "calories": tdee,
-        "carbs": carbs,
-        "protein": protein,
-        "fats": fats
-    }
+        # just use sedentary if something wrong
+        multiplier = activity.get(self.activity_level, 1.2)
+        return bmr * multiplier
 
-# Function to track daily nutritional intake
-def track_daily_intake():
-    """
-    Prompts the user to input foods they ate and their nutritional values.
-    Uses loops and dictionaries as learned in class.
-    """
-    daily_totals = {
-        "calories": 0,
-        "carbs": 0,
-        "protein": 0,
-        "fats": 0
-    }
+    def get_macro_goals(self):
+        tdee = self.get_tdee()
 
+        # bump up/down depending on goal
+        if self.goal == "gain":
+            tdee += 500
+        elif self.goal == "lose":
+            tdee -= 500
+
+        # 40/30/30 split from google
+        carbs = (tdee * 0.4) / 4
+        protein = (tdee * 0.3) / 4
+        fats = (tdee * 0.3) / 9
+
+        return {
+            "calories": round(tdee, 2),
+            "carbs": round(carbs, 2),
+            "protein": round(protein, 2),
+            "fats": round(fats, 2)
+        }
+
+# used this to keep track of what user ate in a day
+class MacroLog:
+    def __init__(self):
+        self.my_totals = {
+            "calories": 0,
+            "carbs": 0,
+            "protein": 0,
+            "fats": 0
+        }
+
+    def add_food(self, name, cal, carb, prot, fat):
+        self.my_totals["calories"] += cal
+        self.my_totals["carbs"] += carb
+        self.my_totals["protein"] += prot
+        self.my_totals["fats"] += fat
+
+    def save_csv(self, filename="log.csv"):
+        with open(filename, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["Calories", "Carbs", "Protein", "Fats"])
+            writer.writerow([
+                self.my_totals["calories"],
+                self.my_totals["carbs"],
+                self.my_totals["protein"],
+                self.my_totals["fats"]
+            ])
+
+    def compare(self, targets):
+        print("\nCompare to Target:")
+        # not looping fancy here
+        if self.my_totals["calories"] > targets["calories"]:
+            print("Calories: Above")
+        else:
+            print("Calories: Below")
+
+        if self.my_totals["carbs"] > targets["carbs"]:
+            print("Carbs: Above")
+        else:
+            print("Carbs: Below")
+
+        if self.my_totals["protein"] > targets["protein"]:
+            print("Protein: Above")
+        else:
+            print("Protein: Below")
+
+        if self.my_totals["fats"] > targets["fats"]:
+            print("Fats: Above")
+        else:
+            print("Fats: Below")
+
+# runs the whole program
+def run_tracker():
+    print("Welcome to the ENGM4620 Nutritional Tracker")
+
+    try:
+        weight = float(input("Weight (kg): "))
+        height = float(input("Height (cm): "))
+        age = int(input("Age: "))
+        gender = input("Gender (male/female): ")
+        activity = input("Activity level (sedentary/light/moderate/very/extra): ")
+        goal = input("Goal (maintain/gain/lose): ")
+    except:
+        print("Something went wrong. Try again.")
+        return
+
+    user = UserInfo(weight, height, age, gender, activity, goal)
+    goals = user.get_macro_goals()
+
+    print("\nYour Daily Goals:")
+    print("Calories:", goals["calories"])
+    print("Carbs:", goals["carbs"], "g")
+    print("Protein:", goals["protein"], "g")
+    print("Fats:", goals["fats"], "g")
+
+    log = MacroLog()
+
+    print("\nType foods you ate today. 'done' when finished.")
     while True:
-        food = input("Enter food name (or type 'done' to finish): ")
-        if food.lower() == 'done':
+        food = input("Food: ")
+        if food.lower() == "done":
             break
-
-        # Collecting input values for the food item
         try:
-            calories = float(input(f"Enter calories in {food}: "))
-            carbs = float(input(f"Enter carbs in {food} (grams): "))
-            protein = float(input(f"Enter protein in {food} (grams): "))
-            fats = float(input(f"Enter fats in {food} (grams): "))
+            cal = float(input("Calories: "))
+            carb = float(input("Carbs (g): "))
+            prot = float(input("Protein (g): "))
+            fat = float(input("Fats (g): "))
+            log.add_food(food, cal, carb, prot, fat)
+        except:
+            print("bad input. skipping that one.")
 
-            # Update daily totals
-            daily_totals["calories"] += calories
-            daily_totals["carbs"] += carbs
-            daily_totals["protein"] += protein
-            daily_totals["fats"] += fats
-        except ValueError:
-            print("Invalid input. Please enter numbers for nutritional values.")
+    print("\nToday's Total:")
+    print("Calories:", log.my_totals["calories"])
+    print("Carbs:", log.my_totals["carbs"])
+    print("Protein:", log.my_totals["protein"])
+    print("Fats:", log.my_totals["fats"])
 
-    return daily_totals
-
-# Main function to execute the tracker
-def main():
-    """
-    Orchestrates the program, combining user inputs, calculations, and comparisons.
-    """
-    print("Welcome to the Nutritional Tracker!")
-
-    # Collect user details
-    weight = float(input("Enter your weight (kg): "))
-    height = float(input("Enter your height (cm): "))
-    age = int(input("Enter your age: "))
-    gender = input("Enter your gender (male/female): ").lower()
-    activity_level = input("Enter your activity level (sedentary, lightly active, moderately active, very active, extra active): ").lower()
-    goal = input("Enter your goal (maintain, gain, lose): ").lower()
-
-    # Calculate suggested TDEE and macros
-    tdee = calculate_tdee(weight, height, age, gender, activity_level)
-    suggested_macros = calculate_macros(tdee, goal)
-
-    print("\nSuggested daily targets:")
-    print(f"Calories: {suggested_macros['calories']:.2f} kcal")
-    print(f"Carbs: {suggested_macros['carbs']:.2f} g")
-    print(f"Protein: {suggested_macros['protein']:.2f} g")
-    print(f"Fats: {suggested_macros['fats']:.2f} g")
-
-    # Track daily food intake
-    print("\nNow, let's track your daily food intake.")
-    daily_totals = track_daily_intake()
-
-    print("\nYour daily totals:")
-    print(f"Calories: {daily_totals['calories']:.2f} kcal")
-    print(f"Carbs: {daily_totals['carbs']:.2f} g")
-    print(f"Protein: {daily_totals['protein']:.2f} g")
-    print(f"Fats: {daily_totals['fats']:.2f} g")
-
-    # Compare intake with suggested targets
-    print("\nComparison with suggested targets:")
-    print(f"Calories: {'Above' if daily_totals['calories'] > suggested_macros['calories'] else 'Below'} target")
-    print(f"Carbs: {'Above' if daily_totals['carbs'] > suggested_macros['carbs'] else 'Below'} target")
-    print(f"Protein: {'Above' if daily_totals['protein'] > suggested_macros['protein'] else 'Below'} target")
-    print(f"Fats: {'Above' if daily_totals['fats'] > suggested_macros['fats'] else 'Below'} target")
+    log.compare(goals)
+    log.save_csv()
+    print("(Saved your log to file too)")
 
 if __name__ == "__main__":
-    main()
+    run_tracker()
