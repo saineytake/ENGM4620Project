@@ -26,4 +26,3 @@ Developed by Sainey Take (B00861683) and Anne Taha (B00866148)
 - Implement a basic GUI with `Tkinter`
 - Features to save/load user profiles for repeat user.
 
-Straightforward. Efficient. Built for practical use.
